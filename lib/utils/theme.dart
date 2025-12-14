@@ -13,7 +13,8 @@ class AppTheme {
   static const secondaryColor = darkGreen;
   static const tertiaryColor = peach;
   static const surfaceColor = white;
-  static const scaffoldBackground = Color(0xFFFAFAFA); // Slightly off-white for depth
+  static const scaffoldBackground =
+      Color(0xFFFAFAFA); // Slightly off-white for depth
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -30,8 +31,10 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: scaffoldBackground,
       textTheme: GoogleFonts.poppinsTextTheme().apply(
-        bodyColor: const Color(0xFF2D2D2D), // Standard dark grey for readability
-        displayColor: darkRedBrown, // Use the palette's dark red/brown for headings
+        bodyColor:
+            const Color(0xFF2D2D2D), // Standard dark grey for readability
+        displayColor:
+            darkRedBrown, // Use the palette's dark red/brown for headings
       ),
       appBarTheme: const AppBarTheme(
         centerTitle: false,
