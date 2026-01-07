@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/task.dart';
 import '../services/local_storage_service.dart';
+import '../services/notification_service.dart';
 
 class TaskProvider with ChangeNotifier {
   final LocalStorageService _storageService = LocalStorageService();
+  final NotificationService _notificationService = NotificationService();
   List<Task> _tasks = [];
 
   List<Task> get tasks => _tasks;
@@ -20,19 +23,63 @@ class TaskProvider with ChangeNotifier {
   Future<void> addTask(Task task) async {
     _tasks.add(task);
     await _storageService.saveTasks(_tasks);
+    
+    // Schedule notification if reminder is enabled and due date exists
+    if (task.hasReminder && task.dueDate != null) {
+      final notificationId = _notificationService.getNotificationId(task.id);
+      await _notificationService.scheduleTaskReminder(
+        id: notificationId,
+        title: 'Task Reminder: ${task.title}',
+        body: task.description.isNotEmpty 
+            ? '${task.description}\n\nDue: ${_formatDateTime(task.dueDate!)}'
+            : 'Your task "${task.title}" is due soon!\n\nDue: ${_formatDateTime(task.dueDate!)}',
+        scheduledDate: task.dueDate!,
+      );
+    }
+    
     notifyListeners();
   }
 
   Future<void> updateTask(Task task) async {
     final index = _tasks.indexWhere((t) => t.id == task.id);
     if (index != -1) {
+      final oldTask = _tasks[index];
+      
+      // Cancel old notification if it existed
+      if (oldTask.hasReminder) {
+        final oldNotificationId = _notificationService.getNotificationId(oldTask.id);
+        await _notificationService.cancelReminder(oldNotificationId);
+      }
+      
       _tasks[index] = task;
       await _storageService.saveTasks(_tasks);
+      
+      // Schedule new notification if reminder is enabled
+      if (task.hasReminder && task.dueDate != null) {
+        final notificationId = _notificationService.getNotificationId(task.id);
+        await _notificationService.scheduleTaskReminder(
+          id: notificationId,
+          title: 'Task Reminder: ${task.title}',
+          body: task.description.isNotEmpty 
+              ? '${task.description}\n\nDue: ${_formatDateTime(task.dueDate!)}'
+              : 'Your task "${task.title}" is due soon!\n\nDue: ${_formatDateTime(task.dueDate!)}',
+          scheduledDate: task.dueDate!,
+        );
+      }
+      
       notifyListeners();
     }
   }
 
   Future<void> deleteTask(String id) async {
+    final task = _tasks.firstWhere((t) => t.id == id);
+    
+    // Cancel notification if it exists
+    if (task.hasReminder) {
+      final notificationId = _notificationService.getNotificationId(id);
+      await _notificationService.cancelReminder(notificationId);
+    }
+    
     _tasks.removeWhere((t) => t.id == id);
     await _storageService.saveTasks(_tasks);
     notifyListeners();
@@ -71,5 +118,9 @@ class TaskProvider with ChangeNotifier {
       return 0;
     });
     return activeTasks.take(3).toList();
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return DateFormat('MMM d, y - h:mm a').format(dateTime);
   }
 }

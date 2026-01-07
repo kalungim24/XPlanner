@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/task_provider.dart';
-import '../providers/habit_provider.dart';
+import '../providers/quote_provider.dart';
 import '../widgets/task_tile.dart';
 import 'daily_reflection_screen.dart';
 
@@ -12,7 +12,6 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final taskProvider = Provider.of<TaskProvider>(context);
-    final habitProvider = Provider.of<HabitProvider>(context);
 
     final now = DateTime.now();
     final dateString = DateFormat('EEEE, MMMM d').format(now);
@@ -116,22 +115,34 @@ class DashboardScreen extends StatelessWidget {
                     const Icon(Icons.format_quote_rounded,
                         color: Colors.white70, size: 40),
                     const SizedBox(height: 12),
-                    Text(
-                      '"The secret of getting ahead is getting started."',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            height: 1.2,
+                    Consumer<QuoteProvider>(builder: (context, quoteProv, _) {
+                      return Column(
+                        children: [
+                          Text(
+                            '"${quoteProv.quoteText}"',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.2,
+                                ),
+                            textAlign: TextAlign.center,
                           ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '- Mark Twain',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white70,
+                          const SizedBox(height: 16),
+                          Text(
+                            '- ${quoteProv.quoteAuthor}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: Colors.white70,
+                                ),
                           ),
-                    ),
+                        ],
+                      );
+                    }),
                   ],
                 ),
               ),

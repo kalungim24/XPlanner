@@ -11,6 +11,7 @@ class Task {
   TaskCategory category;
   TaskPriority priority;
   bool isCompleted;
+  bool hasReminder;
 
   Task({
     String? id,
@@ -20,6 +21,7 @@ class Task {
     this.category = TaskCategory.school,
     this.priority = TaskPriority.medium,
     this.isCompleted = false,
+    this.hasReminder = false,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toJson() {
@@ -31,6 +33,7 @@ class Task {
       'category': category.index,
       'priority': priority.index,
       'isCompleted': isCompleted,
+      'hasReminder': hasReminder,
     };
   }
 
@@ -42,7 +45,8 @@ class Task {
       dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
       category: TaskCategory.values[json['category']],
       priority: TaskPriority.values[json['priority']],
-      isCompleted: json['isCompleted'],
+      isCompleted: json['isCompleted'] ?? false,
+      hasReminder: json['hasReminder'] ?? false,
     );
   }
 }

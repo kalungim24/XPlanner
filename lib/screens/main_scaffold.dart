@@ -7,6 +7,7 @@ import 'habit_tracker_screen.dart';
 import 'deadlines_screen.dart';
 import 'notes_screen.dart';
 import 'daily_reflection_screen.dart';
+import 'tutorial_screen.dart';
 
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
@@ -43,7 +44,10 @@ class _MainScaffoldState extends State<MainScaffold> {
                 children: [
                   Text(
                     'XPlanner',
-                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
                   Text(
@@ -58,7 +62,8 @@ class _MainScaffoldState extends State<MainScaffold> {
               title: const Text('Notes'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const NotesScreen()));
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const NotesScreen()));
               },
             ),
             ListTile(
@@ -66,7 +71,19 @@ class _MainScaffoldState extends State<MainScaffold> {
               title: const Text('Daily Reflection'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const DailyReflectionScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const DailyReflectionScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.school),
+              title: const Text('Tutorial'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const TutorialScreen()));
               },
             ),
           ],

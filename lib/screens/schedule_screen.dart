@@ -6,7 +6,8 @@ import '../models/schedule_entry.dart';
 import 'package:intl/intl.dart';
 
 class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key});
+  final bool tutorialMode;
+  const ScheduleScreen({super.key, this.tutorialMode = false});
 
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
@@ -21,14 +22,62 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.tutorialMode) {
+        _showAddEntryDialog(context);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final scheduleProvider = Provider.of<ScheduleProvider>(context);
-    final events = scheduleProvider.getEntriesForDay(_selectedDay ?? DateTime.now());
+    final events =
+        scheduleProvider.getEntriesForDay(_selectedDay ?? DateTime.now());
 
     return Scaffold(
+      drawer: widget.tutorialMode
+          ? Drawer(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  DrawerHeader(
+                    decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary),
+                    child: const Text('App Menu',
+                        style: TextStyle(color: Colors.white, fontSize: 18)),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.block),
+                    title: const Text('Skip this tutorial step'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Future.delayed(const Duration(milliseconds: 150),
+                          () => Navigator.pop(context, true));
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: const Text('How to use the 3-bar menu'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                                  title: const Text('Menu'),
+                                  content: const Text(
+                                      'The 3-bar hamburger opens this menu where you can access Tutorial and Settings.'),
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('OK'))
+                                  ]));
+                    },
+                  ),
+                ],
+              ),
+            )
+          : null,
       appBar: AppBar(
         title: const Text('Schedule'),
         leading: IconButton(
@@ -78,12 +127,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               itemBuilder: (context, index) {
                 final event = events[index];
                 return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   color: event.color.withOpacity(0.2),
                   child: ListTile(
                     leading: Icon(Icons.class_, color: event.color),
-                    title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('${DateFormat('h:mm a').format(event.startTime)} - ${DateFormat('h:mm a').format(event.endTime)}\n${event.location}'),
+                    title: Text(event.title,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                        '${DateFormat('h:mm a').format(event.startTime)} - ${DateFormat('h:mm a').format(event.endTime)}\n${event.location}'),
                     isThreeLine: true,
                     trailing: IconButton(
                       icon: const Icon(Icons.delete_outline),
@@ -117,25 +169,29 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             children: [
               TextField(
                 controller: titleController,
-                decoration: const InputDecoration(labelText: 'Title (e.g. Math 101)'),
+                decoration:
+                    const InputDecoration(labelText: 'Title (e.g. Math 101)'),
               ),
               TextField(
                 controller: locationController,
-                decoration: const InputDecoration(labelText: 'Location (e.g. Room 302)'),
+                decoration: const InputDecoration(
+                    labelText: 'Location (e.g. Room 302)'),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
                   TextButton(
                     onPressed: () async {
-                      final time = await showTimePicker(context: context, initialTime: startTime);
+                      final time = await showTimePicker(
+                          context: context, initialTime: startTime);
                       if (time != null) startTime = time;
                     },
                     child: const Text('Start Time'),
                   ),
                   TextButton(
                     onPressed: () async {
-                      final time = await showTimePicker(context: context, initialTime: endTime);
+                      final time = await showTimePicker(
+                          context: context, initialTime: endTime);
                       if (time != null) endTime = time;
                     },
                     child: const Text('End Time'),
@@ -146,14 +202,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               if (titleController.text.isNotEmpty) {
                 final now = _selectedDay ?? DateTime.now();
-                final start = DateTime(now.year, now.month, now.day, startTime.hour, startTime.minute);
-                final end = DateTime(now.year, now.month, now.day, endTime.hour, endTime.minute);
-                
+                final start = DateTime(now.year, now.month, now.day,
+                    startTime.hour, startTime.minute);
+                final end = DateTime(
+                    now.year, now.month, now.day, endTime.hour, endTime.minute);
+
                 Provider.of<ScheduleProvider>(context, listen: false).addEntry(
                   ScheduleEntry(
                     title: titleController.text,
@@ -163,6 +223,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   ),
                 );
                 Navigator.pop(context);
+                // If in tutorial mode, return to tutorial and indicate success
+                if (widget.tutorialMode) {
+                  Navigator.pop(context, true);
+                }
               }
             },
             child: const Text('Add'),

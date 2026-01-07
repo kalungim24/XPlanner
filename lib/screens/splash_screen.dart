@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
+import '../services/local_storage_service.dart';
+import 'tutorial_screen.dart';
 import 'main_scaffold.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -33,23 +35,26 @@ class _SplashScreenState extends State<SplashScreen>
           curve: const Interval(0.0, 0.5, curve: Curves.easeIn)),
     );
 
-    _controller.forward().then((_) {
-      Future.delayed(const Duration(seconds: 1), () {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const MainScaffold(),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              return FadeThroughTransition(
-                animation: animation,
-                secondaryAnimation: secondaryAnimation,
-                child: child,
-              );
-            },
-          ),
-        );
-      });
+    _controller.forward().then((_) async {
+      await Future.delayed(const Duration(seconds: 1));
+
+      // Check if the user has already seen the tutorial. If not, show it once.
+      final seen = await LocalStorageService().hasSeenTutorial();
+      if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              seen ? const MainScaffold() : const TutorialScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeThroughTransition(
+              animation: animation,
+              secondaryAnimation: secondaryAnimation,
+              child: child,
+            );
+          },
+        ),
+      );
     });
   }
 

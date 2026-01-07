@@ -6,19 +6,27 @@ import '../models/task.dart';
 import '../widgets/task_tile.dart';
 
 class TodoListScreen extends StatefulWidget {
-  const TodoListScreen({super.key});
+  final bool tutorialMode;
+  const TodoListScreen({super.key, this.tutorialMode = false});
 
   @override
   State<TodoListScreen> createState() => _TodoListScreenState();
 }
 
-class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProviderStateMixin {
+class _TodoListScreenState extends State<TodoListScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // If launched from tutorial, either open add dialog or show drawer based on flag
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.tutorialMode) {
+        _showAddTaskDialog(context);
+      }
+    });
   }
 
   @override
@@ -26,6 +34,49 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
     final taskProvider = Provider.of<TaskProvider>(context);
 
     return Scaffold(
+      drawer: widget.tutorialMode
+          ? Drawer(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  DrawerHeader(
+                    decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary),
+                    child: const Text('App Menu',
+                        style: TextStyle(color: Colors.white, fontSize: 18)),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.block),
+                    title: const Text('Skip this tutorial step'),
+                    onTap: () {
+                      Navigator.pop(context); // close drawer
+                      // return to tutorial marking step as skipped
+                      Future.delayed(const Duration(milliseconds: 150),
+                          () => Navigator.pop(context, true));
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: const Text('How to use the 3-bar menu'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                                  title: const Text('Menu'),
+                                  content: const Text(
+                                      'The 3-bar hamburger opens this menu where you can access Tutorial and Settings.'),
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('OK'))
+                                  ]));
+                    },
+                  ),
+                ],
+              ),
+            )
+          : null,
       appBar: AppBar(
         title: const Text('Tasks'),
         leading: IconButton(
@@ -58,7 +109,7 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
 
   Widget _buildTaskList(TaskProvider provider, TaskCategory category) {
     final tasks = provider.tasks.where((t) => t.category == category).toList();
-    
+
     if (tasks.isEmpty) {
       return Center(
         child: Column(
@@ -66,7 +117,8 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
           children: [
             Icon(Icons.task_alt, size: 64, color: Colors.grey[300]),
             const SizedBox(height: 16),
-            Text('No tasks in ${category.name}!', style: const TextStyle(color: Colors.grey)),
+            Text('No tasks in ${category.name}!',
+                style: const TextStyle(color: Colors.grey)),
           ],
         ),
       );
@@ -104,6 +156,7 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
     TaskCategory selectedCategory = TaskCategory.school;
     TaskPriority selectedPriority = TaskPriority.medium;
     DateTime? selectedDate;
+    bool hasReminder = false;
 
     showDialog(
       context: context,
@@ -123,7 +176,8 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
                   initialValue: selectedCategory,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: TaskCategory.values.map((c) {
-                    return DropdownMenuItem(value: c, child: Text(c.name.toUpperCase()));
+                    return DropdownMenuItem(
+                        value: c, child: Text(c.name.toUpperCase()));
                   }).toList(),
                   onChanged: (val) => setState(() => selectedCategory = val!),
                 ),
@@ -132,14 +186,17 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
                   initialValue: selectedPriority,
                   decoration: const InputDecoration(labelText: 'Priority'),
                   items: TaskPriority.values.map((p) {
-                    return DropdownMenuItem(value: p, child: Text(p.name.toUpperCase()));
+                    return DropdownMenuItem(
+                        value: p, child: Text(p.name.toUpperCase()));
                   }).toList(),
                   onChanged: (val) => setState(() => selectedPriority = val!),
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Text(selectedDate == null ? 'No Date Selected' : selectedDate.toString().split(' ')[0]),
+                    Text(selectedDate == null
+                        ? 'No Date Selected'
+                        : selectedDate.toString().split(' ')[0]),
                     const Spacer(),
                     TextButton(
                       onPressed: () async {
@@ -147,21 +204,77 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
                           context: context,
                           initialDate: DateTime.now(),
                           firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          lastDate:
+                              DateTime.now().add(const Duration(days: 365)),
                         );
                         if (date != null) {
                           setState(() => selectedDate = date);
+                          // Ask about reminder when date is selected
+                          if (!hasReminder) {
+                            final reminderResult = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Set Reminder?'),
+                                content: const Text(
+                                    'Would you like to receive a notification when this task is due?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text('No Thanks'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text('Yes, Remind Me'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (reminderResult == true) {
+                              setState(() => hasReminder = true);
+                            }
+                          }
                         }
                       },
                       child: const Text('Pick Date'),
                     ),
                   ],
                 ),
+                if (selectedDate != null) ...[
+                  const SizedBox(height: 16),
+                  Card(
+                    color: hasReminder
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Colors.grey[100],
+                    child: CheckboxListTile(
+                      title: const Text('Set Reminder',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle:
+                          const Text('Get notified when the deadline arrives'),
+                      value: hasReminder,
+                      onChanged: (value) {
+                        setState(() => hasReminder = value ?? false);
+                      },
+                      controlAffinity: ListTileControlAffinity.leading,
+                      secondary: Icon(
+                        hasReminder
+                            ? Icons.notifications_active
+                            : Icons.notifications_off,
+                        color: hasReminder
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.grey,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () {
                 if (titleController.text.isNotEmpty) {
@@ -171,9 +284,14 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
                       category: selectedCategory,
                       priority: selectedPriority,
                       dueDate: selectedDate,
+                      hasReminder: hasReminder && selectedDate != null,
                     ),
                   );
                   Navigator.pop(context);
+                  // If in tutorial mode, return to tutorial and indicate success
+                  if (widget.tutorialMode) {
+                    Navigator.pop(context, true);
+                  }
                 }
               },
               child: const Text('Add'),
